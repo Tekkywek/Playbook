@@ -1,0 +1,76 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Open+Sans:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 38 53% 97%;
+    --foreground: 15 33% 19%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 15 33% 19%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 15 33% 19%;
+
+    --primary: 29 100% 58%; 
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 39 73% 87%;
+    --secondary-foreground: 15 33% 19%;
+
+    --muted: 39 33% 87%;
+    --muted-foreground: 15 24% 35%;
+
+    --accent: 20 100% 41%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 39 33% 80%;
+    --input: 39 33% 80%;
+    --ring: 29 100% 58%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-playbook-light text-playbook-text font-body;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-playbook-primary text-white rounded-md px-4 py-2 hover:bg-playbook-accent transition-colors font-medium;
+  }
+  
+  .btn-secondary {
+    @apply bg-playbook-secondary text-playbook-text rounded-md px-4 py-2 hover:bg-playbook-neutral transition-colors font-medium;
+  }
+  
+  .card-playbook {
+    @apply bg-white rounded-lg border border-playbook-neutral shadow-sm p-4;
+  }
+  
+  .card-header {
+    @apply bg-playbook-secondary rounded-t-lg p-3 border-b border-playbook-neutral font-heading font-semibold;
+  }
+  
+  .gradient-primary {
+    @apply bg-gradient-to-r from-playbook-primary to-playbook-accent text-white;
+  }
+}
