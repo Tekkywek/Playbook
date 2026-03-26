@@ -1,30 +1,62 @@
 {
   "expo": {
-    "name": "harkercomp",
-    "slug": "harkercomp",
+    "name": "PlayBook",
+    "slug": "playbook",
     "version": "1.0.0",
+    "platforms": ["ios", "android"],
     "orientation": "portrait",
+    "scheme": "playbook",
+    "userInterfaceStyle": "automatic",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0B1020"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.playbook.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "PlayBook uses your location to find nearby games, teams, and leagues.",
+        "NSPhotoLibraryUsageDescription": "Upload profile photos, highlights, and team logos.",
+        "NSCameraUsageDescription": "Take photos for your profile and highlights."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B1020",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "package": "com.playbook.app",
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PlayBook uses your location to find nearby games and weather."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Select photos for your profile and highlights.",
+          "cameraPermission": "Take photos for your profile."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "sounds": [],
+          "mode": "production"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
