@@ -15,11 +15,13 @@ function initials(name: string): string {
 export function PlayerCard({
   profile,
   borderColor,
-  size = 260,
+  size = 240,
+  variant = 'compact',
 }: {
   profile: UserProfile;
   borderColor: string;
   size?: number;
+  variant?: 'compact' | 'full';
 }) {
   const sport = SPORTS.find((s) => s.id === profile.primarySportId);
   const sportProfile = profile.sports?.find((s) => s.sportId === profile.primarySportId);
@@ -42,63 +44,64 @@ export function PlayerCard({
   );
 
   const ovr = Math.min(99, Math.max(40, Math.round((profile.skillRatingAvg ?? 3.5) * 20)));
+  const height = Math.round(size * (variant === 'full' ? 1.5 : 1.42));
 
   return (
-    <View style={[styles.stage, { width: size, height: size }]}>
-      <View style={[styles.diamondOuter, { borderColor, width: size, height: size }]}>
-        <View style={styles.diamondClip}>
-          <View style={[styles.diamondRotate, { width: size, height: size }]}>
-            <ImageBackground source={photo} style={styles.bg} resizeMode="cover">
-              <LinearGradient
-                colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.90)']}
-                locations={[0, 0.55, 1]}
-                style={StyleSheet.absoluteFill}
-                pointerEvents="none"
-              />
+    <View style={[styles.stage, { width: size, height }]}>
+      <View style={[styles.frameOuter, { borderColor, width: size, height }]}>
+        <View style={styles.frameInner}>
+          <ImageBackground source={photo} style={styles.bg} resizeMode="cover">
+            <LinearGradient
+              colors={['rgba(7,15,35,0.15)', 'rgba(7,15,35,0.35)', 'rgba(7,15,35,0.96)']}
+              locations={[0, 0.48, 1]}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
 
-              <View style={styles.topRow}>
-                <Text style={styles.kicker}>PLAYBOOK</Text>
-                <View style={styles.ovrBox}>
-                  <Text style={styles.ovrNum}>{ovr}</Text>
-                  <Text style={styles.ovrLbl}>OVR</Text>
-                </View>
+            <View style={styles.topRow}>
+              <View style={styles.ratingCol}>
+                <Text style={styles.ovrNum}>{ovr}</Text>
+                <Text style={styles.ovrLbl}>OVERALL</Text>
+                <Text style={styles.metaTiny}>{String(position).toUpperCase()}</Text>
               </View>
-
-              <View style={styles.nameBlock}>
-                <Text style={styles.name} numberOfLines={1}>
-                  {profile.displayName ?? 'Athlete'}
-                </Text>
-                <Text style={styles.sub} numberOfLines={1}>
-                  {sport?.emoji ?? '🏟️'} {String(profile.primarySportId).toUpperCase()} · {String(position).toUpperCase()}
-                </Text>
+              <View style={styles.brandChip}>
+                <Text style={styles.brandText}>PLAYBOOK</Text>
               </View>
+            </View>
 
-              <View style={styles.statsOverlay}>
-                <View style={styles.badgeRow}>
-                  {badgeTop.length === 0 ? (
-                    <Text style={styles.badgeMuted}>No badges</Text>
-                  ) : (
-                    badgeTop.map((b) => (
-                      <View key={b.badgeId} style={styles.badgePill}>
-                        <Text style={styles.badgeText}>{b.tier.replace(/_/g, ' ').toUpperCase()}</Text>
-                      </View>
-                    ))
-                  )}
-                </View>
+            <View style={styles.nameBlock}>
+              <Text style={styles.name} numberOfLines={1}>
+                {profile.displayName ?? 'Athlete'}
+              </Text>
+              <Text style={styles.sub} numberOfLines={1}>
+                {sport?.emoji ?? '🏟️'} {String(profile.primarySportId).toUpperCase()} · {String(level).toUpperCase()}
+              </Text>
+            </View>
 
-                <View style={styles.statsGrid}>
-                  {statRows.map((s) => (
-                    <View key={s.k} style={styles.statCell}>
-                      <Text style={styles.statKey}>{s.k}</Text>
-                      <Text style={styles.statVal} numberOfLines={1}>
-                        {s.v}
-                      </Text>
+            <View style={styles.statsOverlay}>
+              <View style={styles.badgeRow}>
+                {badgeTop.length === 0 ? (
+                  <Text style={styles.badgeMuted}>No badges yet</Text>
+                ) : (
+                  badgeTop.map((b) => (
+                    <View key={b.badgeId} style={styles.badgePill}>
+                      <Text style={styles.badgeText}>{b.tier.replace(/_/g, ' ').toUpperCase()}</Text>
                     </View>
-                  ))}
-                </View>
+                  ))
+                )}
               </View>
-            </ImageBackground>
-          </View>
+              <View style={styles.statsGrid}>
+                {statRows.map((s) => (
+                  <View key={s.k} style={styles.statCell}>
+                    <Text style={styles.statKey}>{s.k}</Text>
+                    <Text style={styles.statVal} numberOfLines={1}>
+                      {s.v}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </ImageBackground>
         </View>
       </View>
     </View>
@@ -107,47 +110,52 @@ export function PlayerCard({
 
 const styles = StyleSheet.create({
   stage: { alignSelf: 'center' },
-  diamondOuter: {
+  frameOuter: {
     borderWidth: 4,
-    borderRadius: 28,
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 34,
+    padding: 7,
+    backgroundColor: '#0b1022',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
   },
-  diamondClip: {
-    flex: 1,
-    borderRadius: 22,
-    overflow: 'hidden',
-  },
-  diamondRotate: {
-    flex: 1,
-    transform: [{ rotate: '45deg' }, { scale: 1.05 }],
-  },
+  frameInner: { flex: 1, borderRadius: 28, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)' },
   bg: {
     flex: 1,
-    transform: [{ rotate: '-45deg' }, { scale: 1.25 }],
     justifyContent: 'space-between',
     padding: 14,
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  kicker: { color: 'rgba(255,255,255,0.75)', fontSize: 11, letterSpacing: 1, fontFamily: 'DMSans_600SemiBold' },
-  ovrBox: {
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  ratingCol: {
+    backgroundColor: 'rgba(4,8,20,0.62)',
     borderRadius: 14,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
+    minWidth: 72,
   },
-  ovrNum: { color: '#fff', fontSize: 22, fontFamily: 'Oswald_700Bold', lineHeight: 24 },
-  ovrLbl: { color: 'rgba(255,255,255,0.80)', fontSize: 10, fontFamily: 'DMSans_600SemiBold', letterSpacing: 1 },
+  ovrNum: { color: '#fff', fontSize: 30, fontFamily: 'Oswald_700Bold', lineHeight: 30 },
+  ovrLbl: { color: 'rgba(255,255,255,0.86)', fontSize: 9, fontFamily: 'DMSans_600SemiBold', letterSpacing: 1 },
+  metaTiny: { marginTop: 2, color: 'rgba(255,255,255,0.80)', fontSize: 11, fontFamily: 'DMSans_600SemiBold' },
+  brandChip: {
+    backgroundColor: 'rgba(8,13,32,0.6)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  brandText: { color: 'rgba(255,255,255,0.86)', fontSize: 10, fontFamily: 'DMSans_600SemiBold', letterSpacing: 1 },
 
   nameBlock: { marginTop: 10 },
-  name: { color: '#fff', fontSize: 20, fontFamily: 'Oswald_700Bold', letterSpacing: 0.5 },
+  name: { color: '#fff', fontSize: 24, fontFamily: 'Oswald_700Bold', letterSpacing: 0.5 },
   sub: { marginTop: 2, color: 'rgba(255,255,255,0.78)', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
 
   statsOverlay: {
-    backgroundColor: 'rgba(0,0,0,0.30)',
+    backgroundColor: 'rgba(0,0,0,0.44)',
     borderRadius: 16,
     padding: 12,
     borderWidth: 1,

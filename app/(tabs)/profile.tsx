@@ -200,7 +200,7 @@ export default function ProfileScreen() {
 
         {profile ? (
           <View style={{ marginTop: 14 }}>
-            <PlayerCard profile={profile} borderColor={cardBorder} size={300} />
+            <PlayerCard profile={profile} borderColor={cardBorder} size={300} variant="full" />
             <View style={styles.cardCustomizer}>
               <Body style={styles.customLabel}>Card border</Body>
               <View style={styles.colorRow}>
