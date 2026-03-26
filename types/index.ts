@@ -56,6 +56,8 @@ export interface UserProfile {
   email: string | null;
   displayName: string;
   photoURL: string | null;
+  /** Local-only customization (not required to exist in Firestore). */
+  cardBorderColor?: string;
   sports: SportProfile[];
   primarySportId: SportId;
   role: UserRole;

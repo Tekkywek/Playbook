@@ -7,6 +7,7 @@ export type MapPin = {
   lat: number;
   lng: number;
   title?: string;
+  color?: string;
 };
 
 export function GameMap({
@@ -41,7 +42,7 @@ export function GameMap({
           <Marker
             key={p.id}
             coordinate={{ latitude: p.lat, longitude: p.lng }}
-            pinColor={accent}
+            pinColor={p.color ?? accent}
             title={p.title}
           />
         ))}

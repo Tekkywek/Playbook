@@ -18,6 +18,7 @@ import { fetchWeatherForecast, fetchWeatherNudge, type DayForecast, type HourFor
 import { runMatchmakerGames } from '@/services/ai';
 import type { GameDoc } from '@/types';
 import { WeatherForecastCard } from '@/components/home/WeatherForecastCard';
+import { PlayerCard } from '@/components/profile/PlayerCard';
 
 const ink = '#161b28';
 const inkMuted = 'rgba(22,27,40,0.55)';
@@ -178,6 +179,22 @@ export default function HomeScreen() {
               accent={accent}
             />
           </View>
+        </View>
+
+        <View style={styles.whiteCard}>
+          <View style={styles.cardTitleRow}>
+            <Text style={styles.sectionHead}>Your profile</Text>
+            <Pressable onPress={() => router.push('/(tabs)/profile')}>
+              <Text style={styles.linkText}>Open full profile</Text>
+            </Pressable>
+          </View>
+          {profile ? (
+            <View style={{ marginTop: 12 }}>
+              <PlayerCard profile={profile} borderColor={profile.cardBorderColor ?? accent} size={240} />
+            </View>
+          ) : (
+            <Text style={styles.emptyMuted}>Finish onboarding to generate your player card.</Text>
+          )}
         </View>
 
         <View style={styles.whiteCard}>
@@ -465,6 +482,7 @@ const styles = StyleSheet.create({
   lessonSub: { marginTop: 2, fontFamily: 'DMSans_400Regular', fontSize: 13, color: inkMuted },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   matchHint: { fontFamily: 'DMSans_600SemiBold', fontSize: 11, color: inkMuted },
+  linkText: { fontFamily: 'DMSans_600SemiBold', fontSize: 12, color: dashPurple },
   emptyMuted: { marginTop: 8, fontFamily: 'DMSans_400Regular', fontSize: 14, color: inkMuted, lineHeight: 20 },
   pickRow: {
     flexDirection: 'row',

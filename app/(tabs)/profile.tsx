@@ -31,6 +31,7 @@ import { useRouter } from 'expo-router';
 import { registerPush } from '@/lib/push';
 import { WebcamCaptureModal } from '@/components/profile/WebcamCaptureModal';
 import { uploadProfileImage } from '@/services/storage';
+import { PlayerCard } from '@/components/profile/PlayerCard';
 
 const SIDEBAR_W = 1024;
 const ink = '#161b28';
@@ -40,7 +41,7 @@ const cardBorder = '#dce1ee';
 export default function ProfileScreen() {
   const { width } = useWindowDimensions();
   const bottomPad = width >= SIDEBAR_W ? 28 : 100;
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, mergeLocalProfile } = useAuth();
   const { accent } = useTheme();
   const router = useRouter();
   const [premiumOpen, setPremiumOpen] = useState(false);
@@ -80,6 +81,9 @@ export default function ProfileScreen() {
   const relColor = rel >= 80 ? brand.success : rel >= 60 ? brand.warn : brand.danger;
 
   const uidShort = user?.uid ? `${user.uid.slice(0, 6)}…${user.uid.slice(-4)}` : '—';
+  const cardBorder = profile?.cardBorderColor ?? accent;
+
+  const CARD_COLORS = ['#7C3AED', '#22c55e', '#06b6d4', '#f97316', '#ef4444', '#eab308', '#ffffff'];
 
   const applyPhotoUri = async (uri: string) => {
     if (!user) return;
@@ -193,6 +197,34 @@ export default function ProfileScreen() {
             Tap for full-screen card & share (image export hooks to expo-sharing).
           </Body>
         </Pressable>
+
+        {profile ? (
+          <View style={{ marginTop: 14 }}>
+            <PlayerCard profile={profile} borderColor={cardBorder} size={300} />
+            <View style={styles.cardCustomizer}>
+              <Body style={styles.customLabel}>Card border</Body>
+              <View style={styles.colorRow}>
+                {CARD_COLORS.map((c0) => {
+                  const selected = (profile.cardBorderColor ?? accent) === c0;
+                  return (
+                    <Pressable
+                      key={c0}
+                      onPress={() => mergeLocalProfile({ cardBorderColor: c0 })}
+                      style={[
+                        styles.colorDot,
+                        { backgroundColor: c0 === '#ffffff' ? '#fff' : c0, borderColor: '#dce1ee' },
+                        selected && { transform: [{ scale: 1.08 }], borderColor: ink },
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+              <Body muted style={styles.customHint}>
+                This is saved on this device for now.
+              </Body>
+            </View>
+          </View>
+        ) : null}
 
         <View style={styles.grid2}>
           <StatBox label="Games" value={String(profile?.gamesPlayed ?? 0)} />
@@ -394,6 +426,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#11182A',
     borderWidth: 1,
     borderColor: brand.cardBorder,
+  },
+  cardCustomizer: {
+    marginTop: 12,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: brand.cardBorder,
+    padding: 12,
+  },
+  customLabel: { fontFamily: 'DMSans_600SemiBold', color: ink, fontSize: 13 },
+  customHint: { marginTop: 10, color: inkMuted, fontSize: 12 },
+  colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
+  colorDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 999,
+    borderWidth: 2,
   },
   grid2: {
     flexDirection: 'row',

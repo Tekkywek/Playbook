@@ -8,6 +8,7 @@ export type MapPin = {
   lat: number;
   lng: number;
   title?: string;
+  color?: string;
 };
 
 function styleUrl(): string {
@@ -42,7 +43,7 @@ export function GameMap({
       type: 'FeatureCollection' as const,
       features: pins.map((p) => ({
         type: 'Feature' as const,
-        properties: { id: p.id, title: p.title ?? '' },
+        properties: { id: p.id, title: p.title ?? '', color: p.color ?? '' },
         geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
       })),
     }),
@@ -83,7 +84,7 @@ export function GameMap({
           source: 'games',
           paint: {
             'circle-radius': 7,
-            'circle-color': accent,
+            'circle-color': ['coalesce', ['get', 'color'], accent],
             'circle-stroke-width': 2,
             'circle-stroke-color': 'rgba(255,255,255,0.9)',
           },
@@ -132,7 +133,7 @@ export function GameMap({
     const src = map.getSource('games') as maplibregl.GeoJSONSource | undefined;
     src?.setData(geojson as any);
     if (map.getLayer('games-circle')) {
-      map.setPaintProperty('games-circle', 'circle-color', accent);
+      map.setPaintProperty('games-circle', 'circle-color', ['coalesce', ['get', 'color'], accent]);
     }
   }, [geojson, accent]);
 

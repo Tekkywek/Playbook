@@ -24,6 +24,7 @@ import type { GameDoc, SkillLevel, SportId } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { runMatchmakerGames } from '@/services/ai';
 import { GameMap } from '@/components/maps/GameMap';
+import { fetchPracticeSpots, type PracticeSpot } from '@/services/places';
 const SIDEBAR_W = 1024;
 
 export default function GamesScreen() {
@@ -42,6 +43,9 @@ export default function GamesScreen() {
   const [aiLoading, setAiLoading] = useState(false);
   const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
+  const [mapLayer, setMapLayer] = useState<'games' | 'spots' | 'both'>('both');
+  const [spots, setSpots] = useState<PracticeSpot[]>([]);
+  const [spotsLoading, setSpotsLoading] = useState(false);
 
   useEffect(() => {
     const u = subscribeUpcomingGames(setGames);
@@ -68,6 +72,53 @@ export default function GamesScreen() {
       setCenter({ lat: profile.location.lat, lng: profile.location.lng });
     }
   }, [profile?.location?.lat, profile?.location?.lng]);
+
+  useEffect(() => {
+    const c = center ?? profile?.location;
+    if (!c) return;
+    let cancelled = false;
+    setSpotsLoading(true);
+    const t = setTimeout(() => {
+      void fetchPracticeSpots(c.lat, c.lng, radius, sport)
+        .then((items) => {
+          if (!cancelled) setSpots(items);
+        })
+        .catch(() => {
+          if (!cancelled) setSpots([]);
+        })
+        .finally(() => {
+          if (!cancelled) setSpotsLoading(false);
+        });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [center?.lat, center?.lng, profile?.location?.lat, profile?.location?.lng, radius, sport]);
+
+  const mapPins = useMemo(() => {
+    const gamePins =
+      mapLayer === 'spots'
+        ? []
+        : filtered.map((g) => ({
+            id: `game-${g.id}`,
+            lat: g.lat,
+            lng: g.lng,
+            title: g.title,
+            color: accent,
+          }));
+    const spotPins =
+      mapLayer === 'games'
+        ? []
+        : spots.map((s) => ({
+            id: `spot-${s.id}`,
+            lat: s.lat,
+            lng: s.lng,
+            title: `Practice: ${s.name}`,
+            color: '#22c55e',
+          }));
+    return [...gamePins, ...spotPins];
+  }, [mapLayer, filtered, spots, accent]);
 
   const onJoin = async (gameId: string) => {
     if (!user) return;
@@ -125,6 +176,18 @@ export default function GamesScreen() {
           <Body style={styles.filterText}>Free only</Body>
           <Switch value={freeOnly} onValueChange={setFreeOnly} />
         </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Body style={styles.filterText}>Layer</Body>
+          <Pressable onPress={() => setMapLayer('games')} style={[styles.layerChip, mapLayer === 'games' && { borderColor: accent }]}>
+            <Body style={styles.layerText}>Games</Body>
+          </Pressable>
+          <Pressable onPress={() => setMapLayer('spots')} style={[styles.layerChip, mapLayer === 'spots' && { borderColor: '#22c55e' }]}>
+            <Body style={styles.layerText}>Practice</Body>
+          </Pressable>
+          <Pressable onPress={() => setMapLayer('both')} style={[styles.layerChip, mapLayer === 'both' && { borderColor: '#7C3AED' }]}>
+            <Body style={styles.layerText}>Both</Body>
+          </Pressable>
+        </View>
       </View>
 
       {view === 'map' ? (
@@ -135,7 +198,7 @@ export default function GamesScreen() {
               accent={accent}
               radiusMiles={radius}
               onCenterChanged={setCenter}
-              pins={filtered.map((g) => ({ id: g.id, lat: g.lat, lng: g.lng, title: g.title }))}
+              pins={mapPins}
             />
             <Pressable style={styles.expandBtn} onPress={() => setMapExpanded(true)}>
               <Body style={styles.expandBtnText}>Expand</Body>
@@ -157,12 +220,20 @@ export default function GamesScreen() {
                   accent={accent}
                   radiusMiles={radius}
                   onCenterChanged={setCenter}
-                  pins={filtered.map((g) => ({ id: g.id, lat: g.lat, lng: g.lng, title: g.title }))}
+                  pins={mapPins}
                 />
               </View>
             </View>
           </Modal>
         </>
+      ) : null}
+
+      {view === 'map' ? (
+        <Body muted style={styles.spotsHint}>
+          {spotsLoading
+            ? 'Loading nearby practice spots...'
+            : `${spots.length} practice spots found near this area.`}
+        </Body>
       ) : null}
 
       <PrimaryButton title="Find My Perfect Game (AI)" onPress={runAi} />
@@ -246,6 +317,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   filters: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' },
+  layerChip: {
+    borderWidth: 1,
+    borderColor: '#dce1ee',
+    borderRadius: 999,
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  layerText: { fontSize: 11, color: '#161b28' },
   smallInput: {
     width: 48,
     backgroundColor: '#fff',
@@ -291,6 +371,7 @@ const styles = StyleSheet.create({
   },
   closeBtnText: { color: '#fff', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
   mapModalBody: { flex: 1, padding: 12 },
+  spotsHint: { marginBottom: 8, color: 'rgba(22,27,40,0.55)' },
   card: {
     borderRadius: 16,
     padding: 14,
