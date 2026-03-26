@@ -34,7 +34,7 @@ function Ring({
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - progress.value),
-  }));
+  }), [circumference]);
 
   return (
     <View style={styles.ringCol}>

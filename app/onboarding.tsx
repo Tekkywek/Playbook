@@ -24,8 +24,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { brand, getSportAccent } from '@/constants/theme';
 import { SPORTS, POSITIONS_BY_SPORT } from '@/constants/sports';
 import type { AgeGroup, SkillLevel, SportId, UserGoal, UserRole, SportProfile } from '@/types';
-import { completeOnboarding, updateProfileFields } from '@/services/profile';
-import { uploadProfileImage } from '@/services/storage';
 import { WebcamCaptureModal } from '@/components/profile/WebcamCaptureModal';
 
 /** Nominatim requires a descriptive User-Agent per usage policy. */
@@ -364,7 +362,7 @@ export default function OnboardingScreen() {
       // Save Firestore first; upload new photo after navigation so Storage/web fetch can’t block the dashboard.
       const onboardingPayload = {
         displayName: name.trim(),
-        photoURL: user.photoURL,
+        photoURL: photoUri ?? user.photoURL,
         sports: sportsPayload,
         primarySportId: primarySport,
         role,
@@ -372,9 +370,8 @@ export default function OnboardingScreen() {
         location: { city: finalCity, lat: finalLat!, lng: finalLng! },
         goals: goals.length ? goals : (['pickup'] as UserGoal[]),
       };
-      await withTimeout(completeOnboarding(user.uid, onboardingPayload), 45000, 'Saving profile');
-
-      mergeLocalProfile({ ...onboardingPayload, onboardingComplete: true });
+      // TEMP: do not save to the account/db yet — keep it device-local so onboarding never blocks.
+      mergeLocalProfile({ ...onboardingPayload, onboardingComplete: true } as any);
       // Let React commit auth profile before navigating (avoids index/tabs seeing stale `onboardingComplete`).
       if (Platform.OS === 'web' && typeof requestAnimationFrame !== 'undefined') {
         await new Promise<void>((resolve) => {
@@ -387,18 +384,6 @@ export default function OnboardingScreen() {
       }
 
       router.replace('/(tabs)' as Href);
-
-      if (photoUri) {
-        void (async () => {
-          try {
-            const url = await uploadProfileImage(photoUri, user.uid);
-            await updateProfileFields(user.uid, { photoURL: url });
-            mergeLocalProfile({ photoURL: url });
-          } catch {
-            /* photo is optional; profile already saved */
-          }
-        })();
-      }
     } catch (e) {
       notifyUser('Could not save', String(e));
     } finally {

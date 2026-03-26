@@ -8,9 +8,11 @@ import {
   reload,
   type User,
 } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { UserProfile } from '@/types';
 import { getFirebaseAuth, isFirebaseConfigured } from '@/lib/firebase';
-import { ensureProfileShell, fetchUserProfile, subscribeProfile } from '@/services/profile';
+
+const LOCAL_PROFILE_KEY = 'playbook.localProfile.v1';
 
 interface AuthState {
   firebaseReady: boolean;
@@ -20,6 +22,8 @@ interface AuthState {
   profileLoading: boolean;
   /** Merge into local profile (e.g. after onboarding) so navigation isn’t blocked on the next snapshot. */
   mergeLocalProfile: (patch: Partial<UserProfile>) => void;
+  /** Clear local (device) profile without touching the account. */
+  clearLocalProfile: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -37,6 +41,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const firebaseReady = isFirebaseConfigured();
 
+  // Load the local (device) profile once so onboarding/dashboard can work without Firestore.
+  useEffect(() => {
+    let cancelled = false;
+    setProfileLoading(true);
+    void (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(LOCAL_PROFILE_KEY);
+        if (cancelled) return;
+        if (raw) setProfile(JSON.parse(raw) as UserProfile);
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setProfileLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -47,49 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u);
       setLoading(false);
       if (!u) {
-        setProfile(null);
+        // Keep local profile (device-only) so users can proceed without Firestore.
       }
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setProfile(null);
-      setProfileLoading(false);
-      return;
-    }
-    setProfileLoading(true);
-    let cancelled = false;
-    let unsub: (() => void) | undefined;
-
-    void (async () => {
-      try {
-        await ensureProfileShell(user);
-        if (cancelled) return;
-        unsub = subscribeProfile(
-          user.uid,
-          (p) => {
-            if (!cancelled) setProfile(p);
-          },
-          () => {
-            if (!cancelled) setProfileLoading(false);
-          }
-        );
-        const p = await fetchUserProfile(user.uid);
-        if (!cancelled) setProfile(p);
-      } catch {
-        if (!cancelled) setProfile(null);
-      } finally {
-        if (!cancelled) setProfileLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, [user?.uid]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const auth = getFirebaseAuth();
@@ -125,7 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const mergeLocalProfile = useCallback((patch: Partial<UserProfile>) => {
-    setProfile((p) => (p ? { ...p, ...patch } : null));
+    setProfile((prev) => {
+      const next = (prev ? { ...prev, ...patch } : ({ ...patch } as UserProfile)) as UserProfile;
+      void AsyncStorage.setItem(LOCAL_PROFILE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const clearLocalProfile = useCallback(async () => {
+    await AsyncStorage.removeItem(LOCAL_PROFILE_KEY);
+    setProfile(null);
   }, []);
 
   const value = useMemo(
@@ -136,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       profileLoading,
       mergeLocalProfile,
+      clearLocalProfile,
       signIn,
       signUp,
       signOut: signOutFn,
@@ -149,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       profileLoading,
       mergeLocalProfile,
+      clearLocalProfile,
       signIn,
       signUp,
       signOutFn,
