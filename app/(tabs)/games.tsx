@@ -11,7 +11,6 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { Title, Body, Label } from '@/components/ui/Typography';
@@ -24,6 +23,7 @@ import { subscribeUpcomingGames, distanceMiles, joinGame } from '@/services/game
 import type { GameDoc, SkillLevel, SportId } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { runMatchmakerGames } from '@/services/ai';
+import { GameMap } from '@/components/maps/GameMap';
 const SIDEBAR_W = 1024;
 
 export default function GamesScreen() {
@@ -40,6 +40,8 @@ export default function GamesScreen() {
   const [freeOnly, setFreeOnly] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
 
   useEffect(() => {
     const u = subscribeUpcomingGames(setGames);
@@ -47,30 +49,25 @@ export default function GamesScreen() {
   }, []);
 
   const filtered = useMemo(() => {
-    if (!profile?.location) return [];
+    const c = center ?? profile?.location;
+    if (!c) return [];
     return games.filter((g) => {
       if (sport !== 'all' && g.sportId !== sport) return false;
       if (skill !== 'all' && g.minSkill !== skill) return false;
       if (freeOnly && g.entryFeeCents > 0) return false;
-      const d = distanceMiles(profile.location!.lat, profile.location!.lng, g.lat, g.lng);
+      const d = distanceMiles(c.lat, c.lng, g.lat, g.lng);
       if (d > radius) return false;
       return true;
     });
-  }, [games, profile, sport, skill, freeOnly, radius]);
+  }, [games, profile, center, sport, skill, freeOnly, radius]);
 
-  const region = profile?.location
-    ? {
-        latitude: profile.location.lat,
-        longitude: profile.location.lng,
-        latitudeDelta: 0.12,
-        longitudeDelta: 0.12,
-      }
-    : {
-        latitude: 37.55,
-        longitude: -122.0,
-        latitudeDelta: 0.3,
-        longitudeDelta: 0.3,
-      };
+  const initialCenter = center ?? profile?.location ?? { lat: 37.55, lng: -122.0 };
+
+  useEffect(() => {
+    if (profile?.location && !center) {
+      setCenter({ lat: profile.location.lat, lng: profile.location.lng });
+    }
+  }, [profile?.location?.lat, profile?.location?.lng]);
 
   const onJoin = async (gameId: string) => {
     if (!user) return;
@@ -131,19 +128,41 @@ export default function GamesScreen() {
       </View>
 
       {view === 'map' ? (
-        <View style={styles.mapBox}>
-          <MapView style={StyleSheet.absoluteFill} initialRegion={region}>
-            {filtered.map((g) => (
-              <Marker
-                key={g.id}
-                coordinate={{ latitude: g.lat, longitude: g.lng }}
-                pinColor={accent}
-                title={g.title}
-                description="Tap card below to open"
-              />
-            ))}
-          </MapView>
-        </View>
+        <>
+          <View style={styles.mapBox}>
+            <GameMap
+              initialCenter={initialCenter}
+              accent={accent}
+              radiusMiles={radius}
+              onCenterChanged={setCenter}
+              pins={filtered.map((g) => ({ id: g.id, lat: g.lat, lng: g.lng, title: g.title }))}
+            />
+            <Pressable style={styles.expandBtn} onPress={() => setMapExpanded(true)}>
+              <Body style={styles.expandBtnText}>Expand</Body>
+            </Pressable>
+          </View>
+
+          <Modal visible={mapExpanded} animationType="slide">
+            <View style={styles.mapModal}>
+              <View style={styles.mapModalTop}>
+                <Title style={styles.mapModalTitle}>Map</Title>
+                <Pressable onPress={() => setMapExpanded(false)} style={styles.closeBtn}>
+                  <Body style={styles.closeBtnText}>Close</Body>
+                </Pressable>
+              </View>
+              <View style={styles.mapModalBody}>
+                <GameMap
+                  fill
+                  initialCenter={initialCenter}
+                  accent={accent}
+                  radiusMiles={radius}
+                  onCenterChanged={setCenter}
+                  pins={filtered.map((g) => ({ id: g.id, lat: g.lat, lng: g.lng, title: g.title }))}
+                />
+              </View>
+            </View>
+          </Modal>
+        </>
       ) : null}
 
       <PrimaryButton title="Find My Perfect Game (AI)" onPress={runAi} />
@@ -237,6 +256,41 @@ const styles = StyleSheet.create({
     borderColor: '#dce1ee',
   },
   mapBox: { height: 220, borderRadius: 16, overflow: 'hidden', marginBottom: 12, borderWidth: 1, borderColor: brand.cardBorder },
+  expandBtn: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    backgroundColor: 'rgba(15,23,42,0.82)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  expandBtnText: { color: 'rgba(255,255,255,0.95)', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  mapModal: { flex: 1, backgroundColor: '#0B1020' },
+  mapModalTop: {
+    paddingTop: 14,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    backgroundColor: '#0B1020',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.10)',
+  },
+  mapModalTitle: { color: '#fff', fontSize: 18 },
+  closeBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  closeBtnText: { color: '#fff', fontSize: 12, fontFamily: 'DMSans_600SemiBold' },
+  mapModalBody: { flex: 1, padding: 12 },
   card: {
     borderRadius: 16,
     padding: 14,

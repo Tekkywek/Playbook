@@ -41,6 +41,7 @@
     "expo-status-bar": "~55.0.4",
     "expo-web-browser": "~55.0.10",
     "firebase": "^12.11.0",
+    "maplibre-gl": "^5.21.1",
     "next": "^15.5.14",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

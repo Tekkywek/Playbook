@@ -14,9 +14,10 @@ import { greetingForNow, quoteForToday } from '@/constants/quotes';
 import { SPORTS } from '@/constants/sports';
 import { subscribeUpcomingGames, distanceMiles } from '@/services/games';
 import { subscribeActivityFeed } from '@/services/activity';
-import { fetchWeatherNudge } from '@/services/weather';
+import { fetchWeatherForecast, fetchWeatherNudge, type DayForecast, type HourForecast } from '@/services/weather';
 import { runMatchmakerGames } from '@/services/ai';
 import type { GameDoc } from '@/types';
+import { WeatherForecastCard } from '@/components/home/WeatherForecastCard';
 
 const ink = '#161b28';
 const inkMuted = 'rgba(22,27,40,0.55)';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const [games, setGames] = useState<GameDoc[]>([]);
   const [activity, setActivity] = useState<{ id: string; title: string; subtitle?: string }[]>([]);
   const [weather, setWeather] = useState<string | null>(null);
+  const [forecast, setForecast] = useState<{ hourly: HourForecast[]; daily: DayForecast[] } | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResults, setAiResults] = useState<{ id: string; matchPct: number; reason: string }[]>([]);
@@ -52,7 +54,26 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!profile?.location) return;
-    fetchWeatherNudge(profile.location.lat, profile.location.lng, profile.location.city).then(setWeather);
+    let cancelled = false;
+
+    const run = async () => {
+      const loc = profile.location!;
+      const [nextNudge, nextForecast] = await Promise.all([
+        fetchWeatherNudge(loc.lat, loc.lng, loc.city),
+        fetchWeatherForecast(loc.lat, loc.lng),
+      ]);
+      if (!cancelled) {
+        setWeather(nextNudge);
+        setForecast(nextForecast);
+      }
+    };
+
+    void run();
+    const id = setInterval(run, 10 * 60 * 1000); // refresh every 10 minutes
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [profile?.location?.lat, profile?.location?.lng, profile?.location?.city]);
 
   const sportLabel = SPORTS.find((s) => s.id === profile?.primarySportId)?.label ?? 'sport';
@@ -137,6 +158,11 @@ export default function HomeScreen() {
               <Text style={styles.streakText}>
                 You&apos;re on a {profile.streakCount}-game streak — keep showing up.
               </Text>
+            </View>
+          ) : null}
+          {profile?.location && forecast ? (
+            <View style={{ marginTop: 14 }}>
+              <WeatherForecastCard cityLabel={profile.location.city} hourly={forecast.hourly} daily={forecast.daily} />
             </View>
           ) : null}
         </View>
